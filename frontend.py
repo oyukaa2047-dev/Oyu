@@ -10,15 +10,11 @@ import os
 
 import requests
 
-import openai
-
 import json
 
-import re
 
 import datetime
 
-import json
 
 import backend.functions as back
 
