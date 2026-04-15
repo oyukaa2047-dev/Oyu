@@ -79,7 +79,7 @@ if st.session_state.waiting:
 
         answer = {}
 
-        answer['response'] = back.asuult2(last_prompt)
+        answer['response'] = back.handle_user_quer(last_prompt)
 
     st.chat_message("assistant").markdown(answer['response'])
 
