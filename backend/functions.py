@@ -1,5 +1,7 @@
 import pandas as pd
 import streamlit as st
+import re
+
 
 # --- 1. ӨГӨГДӨЛ УНШИХ БА ЦЭВЭРЛЭХ ХЭСЭГ ---
 # Файлын замыг өөрийнхөөрөө зөв зааж өгөх (жишээ нь: "data/admin_units.xlsx")
