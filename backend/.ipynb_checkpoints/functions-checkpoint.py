@@ -3,7 +3,7 @@ import streamlit as st
 
 # --- 1. ӨГӨГДӨЛ УНШИХ БА ЦЭВЭРЛЭХ ХЭСЭГ ---
 # Файлын замыг өөрийнхөөрөө зөв зааж өгөх (жишээ нь: "data/admin_units.xlsx")
-df = pd.read_exce("backend/data/admin_units.xlsx")
+df = pd.read_excel("backend/data/admin_units.xlsx")
 
 # Багануудыг шинэчлэн нэрлэх (Зураг дээрхтэй адил болгох)
 df = df.rename(columns={
