@@ -81,7 +81,7 @@ st.title("🗺️ Монгол улсын бүсийн мэдээлэл")
 
 # 2. Датаг унших болон цэвэрлэх
 # "таны_файл.xlsx" гэсэн хэсэгт өөрийн файлын нэрийг заавал зөв бичээрэй
-df = pd.read_excel("таны_файл.xlsx") 
+df = pd.read_excel("backend/data/admin_units.xlsx"") 
 
 # Багануудыг шинээр нэрлэх
 df = df.rename(columns={
