@@ -1,21 +1,6 @@
 import streamlit as st
-
-import time
-
 import pandas as pd
-
-import numpy as np
-
-import os
-
 import requests
-
-import json
-
-
-import datetime
-
-
 import backend.functions as back
 
 st.set_page_config(
@@ -91,4 +76,43 @@ if st.session_state.waiting:
 
     st.rerun()
 
+# 1. Хуудасны гарчиг
+st.title("🗺️ Монгол улсын бүсийн мэдээлэл")
 
+# 2. Датаг унших болон цэвэрлэх
+# "таны_файл.xlsx" гэсэн хэсэгт өөрийн файлын нэрийг заавал зөв бичээрэй
+df = pd.read_excel("таны_файл.xlsx") 
+
+# Багануудыг шинээр нэрлэх
+df = df.rename(columns={
+    'МОНГОЛ УЛСЫН ЗАСАГ ЗАХИРГАА, НУТАГ ДЭВСГЭРИЙН НЭГЖ, бүс, аймаг, нийслэл, жилээр': 'Аймаг, нийслэл',
+    'Unnamed: 1': 'Бүс',
+    'Unnamed: 2': 'Код',
+    'Unnamed: 3': '2025 он'
+})
+
+# Илүүдэл мөрүүдийг устгах
+df = df.iloc[1:].reset_index(drop=True)
+df['Бүс'] = df['Бүс'].str.strip() # Хоосон зайг цэвэрлэх
+
+# 3. Хайлтын хэсэг
+ner = st.text_input("Асуух бүсийн нэрээ оруулна уу (Жишээ нь: Баруун):")
+
+# 4. Үр дүнг DataFrame болгож харуулах
+if ner:
+    # Шүүлтүүр хийх
+    search_result = df[df['Бүс'].str.contains(ner, na=False, case=False)]
+    
+    if not search_result.empty:
+        st.success(f"✅ '{ner}' бүсийн мэдээлэл:")
+        # Үр дүнг хүснэгт хэлбэрээр харуулах
+        st.dataframe(search_result, use_container_width=True)
+        
+        # Тоон мэдээллийг Metric-ээр харуулах
+        total_value = pd.to_numeric(search_result['2025 он'], errors='coerce').sum()
+        st.metric(label=f"{ner} бүсийн 2025 оны нийт дүн", value=f"{total_value:,.0f}")
+    else:
+        st.warning(f"⚠️ '{ner}' нэртэй бүс олдсонгүй.")
+else:
+    st.info("Дээрх талбарт бүсийн нэрээ бичээд Enter дарна уу.")
+    st.write("Нийт мэдээллийн жагсаалт:", df)
