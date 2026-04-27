@@ -4,7 +4,9 @@ import requests
 import backend.functions as back
 import re
 import os
-
+pandas
+openpyxl
+streamlit
 st.set_page_config(
 
     page_title="Way Academy - Demo chatbot", 
