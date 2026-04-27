@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import re
+import os
 
 
 # --- 1. ӨГӨГДӨЛ УНШИХ БА ЦЭВЭРЛЭХ ХЭСЭГ ---

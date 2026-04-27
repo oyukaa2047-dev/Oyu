@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import backend.functions as back
 import re
+import os
 
 st.set_page_config(
 
@@ -65,7 +66,7 @@ if st.session_state.waiting:
 
         answer = {}
 
-        answer['response'] = back.handle_user_query(last_prompt)
+        answer['response'] = back.busiin_medeelel_avah(last_prompt)
 
     st.chat_message("assistant").markdown(answer['response'])
 
@@ -82,7 +83,7 @@ st.title("🗺️ Монгол улсын бүсийн мэдээлэл")
 
 # 2. Датаг унших болон цэвэрлэх
 # "таны_файл.xlsx" гэсэн хэсэгт өөрийн файлын нэрийг заавал зөв бичээрэй
-df = pd.read_excel("backend/data/admin_units.xlsx"") 
+df = pd.read_excel("backend/data/admin_units.xlsx") 
 
 # Багануудыг шинээр нэрлэх
 df = df.rename(columns={
