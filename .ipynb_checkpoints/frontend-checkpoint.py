@@ -118,3 +118,66 @@ if ner:
 else:
     st.info("Дээрх талбарт бүсийн нэрээ бичээд Enter дарна уу.")
     st.write("Нийт мэдээллийн жагсаалт:", df)
+
+
+# --- 1. ӨГӨГДӨЛ УНШИХ ---
+@st.cache_data
+def load_data():
+    df = pd.read_csv("data/salary - salary.csv")
+    df.columns = [str(col).strip() for col in df.columns]
+    return df
+
+df = load_data()
+
+# --- 2. ТЕКСТЭЭС МЭДЭЭЛЭЛ ШҮҮХ ФУНКЦ ---
+def answer_question(user_input):
+    # Бүс/Аймгийн жагсаалт
+    regions = df['Аймаг'].unique().tolist()
+    # Хүйсийн жагсаалт
+    genders = df['Хүйс'].unique().tolist()
+    # Онуудын жагсаалт
+    years = [col for col in df.columns if col.isdigit()]
+
+    # Хэрэглэгчийн бичсэн текст дотроос түлхүүр үгсийг хайх
+    found_region = next((r for r in regions if r.lower() in user_input.lower()), None)
+    found_gender = next((g for g in genders if g.lower() in user_input.lower()), "Бүгд")
+    found_year = next((y for y in years if y in user_input), "2024") # Байхгүй бол 2023-ыг авна
+
+    if found_region:
+        # Датаг шүүх
+        result = df[(df['Аймаг'] == found_region) & (df['Хүйс'] == found_gender)]
+        
+        if not result.empty:
+            salary = result[found_year].values[0]
+            return f"📍 **{found_region}**-ийн **{found_gender}** ажилчдын **{found_year}** оны дундаж цалин: **{salary:,.0f} ₮** байна."
+        else:
+            return "Уучлаарай, энэ үзүүлэлтээр мэдээлэл олдсонгүй."
+    else:
+        return "Та асуултандаа аймаг эсвэл бүсийн нэрээ оруулна уу. (Жишээ нь: 'Зүүн бүсийн цалин хэд вэ?')"
+
+# --- 3. STREAMLIT CHAT UI ---
+st.title("🤖 Цалингийн ухаалаг туслах")
+st.info("Та асуултаа бичнэ үү. Жишээ нь: 'Баруун бүсийн эмэгтэйчүүдийн 2022 оны цалин?'")
+
+# Чатны түүхийг хадгалах
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Өмнөх зурвасуудыг харуулах
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Хэрэглэгчийн асуулт авах хэсэг
+if prompt := st.chat_input("Энд бичнэ үү..."):
+    # Хэрэглэгчийн асуултыг харуулах
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Хариу боловсруулах
+    with st.chat_message("assistant"):
+        response = answer_question(prompt)
+        st.markdown(response)
+    
+    st.session_state.messages.append({"role": "assistant", "content": response})
