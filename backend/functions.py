@@ -61,7 +61,7 @@ else:
 # --- 1. ӨГӨГДӨЛ УНШИХ ---
 @st.cache_data
 def load_data():
-    df = pd.read_csv("backend/data/salary - salary.csv")
+    df = pd.read_csv("backend/data/salary.csv")
     df.columns = [str(col).strip() for col in df.columns]
     return df
 
