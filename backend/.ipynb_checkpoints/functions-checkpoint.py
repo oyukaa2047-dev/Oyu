@@ -98,3 +98,11 @@ def handle_user_query(query):
         response += f"   - Огноо: {row['effective_date'].strftime('%Y-%m-%d')}\n---\n"
     
     return response
+# --- ЛОГИК 4: ХАМГИЙН ӨНДӨР ӨРТӨГТЭЙ ХООЛ ---
+    if "үнэтэй" in q_low or "unetei" in q_lat:
+        current_df['total'] = current_df['Hemjee'] * current_df['average_urtug']
+        top_hool = current_df.groupby('Hoolnii_ner')['total'].sum().sort_values(ascending=False).head(3)
+        msg = "🥇 **Хамгийн өндөр өртөгтэй ТОП 3 хоол:**\n"
+        for i, (name, val) in enumerate(top_hool.items(), 1):
+            msg += f"{i}. {name}: **{val:,.2f}₮**\n"
+        return msg
