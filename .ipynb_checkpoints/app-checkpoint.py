@@ -23,7 +23,6 @@ def load_and_clean_data():
     # А. Огноо цэвэрлэгээ
     zah_huu_df['он сар'] = zah_huu_df['он сар'].astype(str).str.strip()
     zah_huu_df['он сар'] = zah_huu_df['он сар'].replace(['nan', 'None', ''], np.nan)
-    zah_huu_df['он са r'] = zah_huu_df['он сар'].replace('1/3', '2026-01-03')  # Шаардлагатай бол 'он сар' болгож засаарай
     
     zah_huu_df['он сар'] = zah_huu_df['он сар'].ffill()
     zah_huu_df['он сар'] = pd.to_datetime(zah_huu_df['он сар'], errors='coerce')
@@ -41,7 +40,7 @@ def load_and_clean_data():
         '99335584': 'Хүрлээ', 'амаглан': 'Амгалан', 'араас мэндээ': 'Мэндсайхан', 'ээгий араас': 'Энхболд',
         'араас ээгий': 'Энхболд', 'туул2': 'Ариунтуул', 'Араас мэндээ': 'Мэндсайхан', 'Араас батболд': 'Батболд',
         'Зоорий': 'Ариунзориг', 'Араас ээгий': 'Ээгий', 'Туул2': 'Ариунтуул', 'Ээгий араас': 'Ээгий',
-        'Амаглан': 'Амгалан', 'Мэндээ': 'Мэндсайхан', 'Туул': 'Ариунтуул', 'Зоригоо': 'Ариунзориг',
+        'Амаглан': 'Амгалан', 'Мэндээ': 'Мэндсайхан', 'Туул': 'Ариунтуул', 'Зоригоо': 'Аriунзориг',
         'Пүрэвээ': 'Пүрэв', 'Эндээ': 'Мэндсайхан', 'Багана': 'Баганаа'
     }
     zah_huu_df['Жолооч'] = zah_huu_df['Жолооч'].replace(солих_нэрс)
@@ -88,7 +87,7 @@ def extract_date_from_text(text):
 
 # --- ЧАТБОТ ИНТЕРФЭЙС ---
 st.title("💬 online Chatbot")
-st.write("Жолооч, бараа, огноо эсвэл хугацааны интервалаар асуугаарай. (ж.нь: `Батболд өнгөрсөн долоо хоногт хэдэн захиалга хүргэсэн бэ?`)")
+st.write("Жолооч, бараа, огноо эсвэл хугацааны интервалаар асуугаарай. (ж.нь: `Батболд`, `Батболд өчигдөр`)")
 
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Сайн байна уу! Би захиалгын ухаалаг аналитик туслах байна."}]
@@ -103,81 +102,124 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
     st.session_state.messages.append({"role": "user", "content": user_query})
     
     query_lower = user_query.lower()
-    
-    # А. ХУГАЦАА ТОГТООХ ЛОГИК (Интервал болон Тодорхой өдөр)
-    filtered_df = zah_huu_df.copy()
-    date_text = "Бүх цаг үеийн"
     today = datetime.today().date()
     
-    specific_date = extract_date_from_text(user_query)
-    
-    if specific_date:
-        filtered_df = filtered_df[filtered_df['огноо_өдөр'] == specific_date]
-        date_text = str(specific_date)
-    elif "өнөөдөр" in query_lower:
-        filtered_df = filtered_df[filtered_df['огноо_өдөр'] == today]
-        date_text = "Өнөөдөр"
-    elif "өчигдөр" in query_lower:
-        yesterday = today - timedelta(days=1)
-        filtered_df = filtered_df[filtered_df['огноо_өдөр'] == yesterday]
-        date_text = "Өчигдөр"
-    elif "өнгөрсөн долоо хоног" in query_lower:
-        start_date = today - timedelta(days=today.weekday() + 7)
-        end_date = start_date + timedelta(days=6)
-        filtered_df = filtered_df[(filtered_df['огноо_өдөр'] >= start_date) & (filtered_df['огноо_өдөр'] <= end_date)]
-        date_text = f"Өнгөрсөн долоо хоног ({start_date} ~ {end_date})"
-    elif "энэ долоо хоног" in query_lower:
-        start_date = today - timedelta(days=today.weekday())
-        filtered_df = filtered_df[filtered_df['огноо_өдөр'] >= start_date]
-        date_text = f"Энэ долоо хоног (Мягмараас өнөөдрийг хүртэл)"
-    elif "энэ сар" in query_lower:
-        start_date = today.replace(day=1)
-        filtered_df = filtered_df[filtered_df['огноо_өдөр'] >= start_date]
-        date_text = f"Энэ сар ({start_date.strftime('%Y-%m')})"
-        
-    # Б. ЖОЛООЧ ШҮҮХ ЛОГИК
+    # А. ЖОЛООЧ ШҮҮХ
     driver_found = None
-    all_drivers = [name for name in filtered_df['Жолооч'].unique() if name != 'Тодорхойгүй' and not pd.isna(name)]
+    all_drivers = [name for name in zah_huu_df['Жолооч'].unique() if name != 'Тодорхойгүй' and not pd.isna(name)]
     for driver in all_drivers:
         if driver.lower() in query_lower:
             driver_found = driver
-            filtered_df = filtered_df[filtered_df['Жолооч'] == driver]
             break
 
+    # Б. ХУГАЦААНЫ ТҮЛХҮҮР ҮГ ШАЛГАХ
+    has_date_keyword = any(kw in query_lower for kw in ["өнөөдөр", "өчигдөр", "долоо хоног", "сар"]) or extract_date_from_text(user_query) is not None
+
     # В. БАРАА ШҮҮХ ЛОГИК
+    product_filter = None
     product_text = ""
     if "tengsu" in query_lower or "тэнхсү" in query_lower:
-        filtered_df = filtered_df[filtered_df['барааны нэр'].str.contains('Tengsu', case=False)]
+        product_filter = "Tengsu"
         product_text = " (Бараа: Tengsu)"
     elif "маск" in query_lower:
-        filtered_df = filtered_df[filtered_df['барааны нэр'].str.contains('маск', case=False)]
-        product_text = " (Бараа: Маск)"
+        product_filter = "маск"
+        product_text = " (Бараа: Mask)"
 
-    # Г. ҮР ДҮНГ ТОГТООЖ ХАРИУЛТ БЭЛДЭХ (Шинэчилсэн SUM логиктой хэсэг)
-    total_orders = len(filtered_df)
-    summary = filtered_df['мэдээ'].value_counts()
-    
-    # Зөвхөн амжилттай 'Хүргэсэн' төлөвтэй захиалгуудын 'тоо ширхэг' баганыг нэмэх томьёо
-    delivered_only_df = filtered_df[filtered_df['мэдээ'] == 'Хүргэсэн']
-    
-    if 'тоо ширхэг' in filtered_df.columns:
-        total_items_delivered = delivered_only_df['тоо ширхэг'].sum()
-        items_text = f"• 📦 **Нийт хүргэсэн бараа:** {int(total_items_delivered)} ш\n"
+    # Г. ҮР ДҮН ТООЦООЛОХ БОЛОН ХАРИУЛТ БЭЛДЭХ ЛОГИК
+    bot_response = ""
+
+    # Нөхцөл 1: Зөвхөн Жолоочийн нэр хэлсэн бөгөөд хугацаа заагаагүй бол (Автоматаар Өдөр, 7 хоног, Сарыг зэрэг харуулна)
+    if driver_found and not has_date_keyword:
+        bot_response = f"👤 Жолооч **{driver_found}**-ийн нэгдсэн статистик мэдээлэл{product_text}:\n\n"
+        
+        # Хугацааны интервалууд тодорхойлох
+        intervals = {
+            "📌 Өнөөдөр": (today, today),
+            "📅 Өнгөрсөн 7 хоног": (today - timedelta(days=today.weekday() + 7), today - timedelta(days=today.weekday() + 7) + timedelta(days=6)),
+            "📊 Энэ сар": (today.replace(day=1), today)
+        }
+        
+        for title, (start, end) in intervals.items():
+            # Хугацаа болон Жолоочоор шүүх
+            df_slice = zah_huu_df[(zah_huu_df['огноо_өдөр'] >= start) & (zah_huu_df['огноо_өдөр'] <= end) & (zah_huu_df['Жолооч'] == driver_found)]
+            
+            # Бараагаар нэмж шүүх
+            if product_filter:
+                df_slice = df_slice[df_slice['барааны нэр'].str.contains(product_filter, case=False)]
+                
+            total_orders = len(df_slice)
+            summary = df_slice['мэдээ'].value_counts()
+            
+            # Хүргэсэн барааны тоо ширхэг
+            delivered_df = df_slice[df_slice['мэдээ'] == 'Хүргэсэн']
+            if 'тоо ширхэг' in df_slice.columns:
+                total_items = int(delivered_df['тоо ширхэг'].sum())
+            else:
+                total_items = summary.get('Хүргэсэн', 0)
+                
+            bot_response += f"### {title}\n"
+            bot_response += f"• 📑 Нийт захиалга (мөр): **{total_orders}** ш\n"
+            bot_response += f"• 📦 Нийт хүргэсэн бараа: **{total_items}** ш\n"
+            bot_response += f"• 🟩 Хүргэсэн: {summary.get('Хүргэсэн', 0)} | 🟨 Хойшилсон: {summary.get('Хойшлогдсон захиалга', 0)} | 🟧 Буцаасан: {summary.get('Буцаасан', 0)} | 🟥 Цуцалсан: {summary.get('Цуцалсан', 0)}\n"
+            bot_response += "---\n"
+
+    # Нөхцөл 2: Жирийн үед эсвэл Тодорхой хугацаа зааж асуусан бол (Хуучин логик)
     else:
-        total_items_delivered = summary.get('Хүргэсэн', 0)
-        items_text = f"• 📦 **Нийт хүргэсэн захиалга (мөр):** {total_items_delivered} ш\n"
-    
-    # Хариултын текст бэлдэх
-    driver_info = f" Жолооч: **{driver_found}**" if driver_found else ""
-    bot_response = f"📅 **{date_text}**-ний{driver_info}{product_text} захиалгын мэдээлэл:\n\n"
-    bot_response += f"• 📑 **Нийт бүртгэгдсэн захиалга (мөр):** {total_orders}ш\n"
-    bot_response += items_text  # Дээр бодсон нийлбэр (SUM) энд харагдана
-    bot_response += f"--- \n"
-    bot_response += f"• 🟩 **Хүргэсэн:** {summary.get('Хүргэсэн', 0)}ш\n"
-    bot_response += f"• 🟨 **Хойшлогдсон захиалга:** {summary.get('Хойшлогдсон захиалга', 0)}ш\n"
-    bot_response += f"• 🟧 **Буцаасан:** {summary.get('Буцаасан', 0)}ш\n"
-    bot_response += f"• 🟥 **Цуцалсан:** {summary.get('Цуцалсан', 0)}ш"
+        filtered_df = zah_huu_df.copy()
+        date_text = "Бүх цаг үеийн"
+        
+        specific_date = extract_date_from_text(user_query)
+        if specific_date:
+            filtered_df = filtered_df[filtered_df['огноо_өдөр'] == specific_date]
+            date_text = str(specific_date)
+        elif "өнөөдөр" in query_lower:
+            filtered_df = filtered_df[filtered_df['огноо_өдөр'] == today]
+            date_text = "Өнөөдөр"
+        elif "өчигдөр" in query_lower:
+            yesterday = today - timedelta(days=1)
+            filtered_df = filtered_df[filtered_df['огноо_өдөр'] == yesterday]
+            date_text = "Өчигдөр"
+        elif "өнгөрсөн долоо хоног" in query_lower:
+            start_date = today - timedelta(days=today.weekday() + 7)
+            end_date = start_date + timedelta(days=6)
+            filtered_df = filtered_df[(filtered_df['огноо_өдөр'] >= start_date) & (filtered_df['огноо_өдөр'] <= end_date)]
+            date_text = f"Өнгөрсөн долоо хоног ({start_date} ~ {end_date})"
+        elif "энэ долоо хоног" in query_lower:
+            start_date = today - timedelta(days=today.weekday())
+            filtered_df = filtered_df[filtered_df['огноо_өдөр'] >= start_date]
+            date_text = f"Энэ долоо хоног"
+        elif "энэ сар" in query_lower:
+            start_date = today.replace(day=1)
+            filtered_df = filtered_df[filtered_df['огноо_өдөр'] >= start_date]
+            date_text = f"Энэ сар ({start_date.strftime('%Y-%m')})"
 
+        if driver_found:
+            filtered_df = filtered_df[filtered_df['Жолооч'] == driver_found]
+        if product_filter:
+            filtered_df = filtered_df[filtered_df['барааны нэр'].str.contains(product_filter, case=False)]
+
+        total_orders = len(filtered_df)
+        summary = filtered_df['мэдээ'].value_counts()
+        delivered_only_df = filtered_df[filtered_df['мэдээ'] == 'ХRef хүргэсэн' or filtered_df['мэдээ'] == 'Хүргэсэн']
+        
+        if 'тоо ширхэг' in filtered_df.columns:
+            total_items_delivered = filtered_df[filtered_df['мэдээ'] == 'Хүргэсэн']['тоо ширхэг'].sum()
+            items_text = f"• 📦 **Нийт хүргэсэн бараа:** {int(total_items_delivered)} ш\n"
+        else:
+            total_items_delivered = summary.get('Хүргэсэн', 0)
+            items_text = f"• 📦 **Нийт хүргэсэн захиалга (мөр):** {total_items_delivered} ш\n"
+
+        driver_info = f" Жолооч: **{driver_found}**" if driver_found else ""
+        bot_response = f"📅 **{date_text}**-ний{driver_info}{product_text} захиалгын мэдээлэл:\n\n"
+        bot_response += f"• 📑 **Нийт бүртгэгдсэн захиалга (мөр):** {total_orders}ш\n"
+        bot_response += items_text
+        bot_response += f"--- \n"
+        bot_response += f"• 🟩 **Хүргэсэн:** {summary.get('Хүргэсэн', 0)}ш\n"
+        bot_response += f"• 🟨 **Хойшлогдсон захиалга:** {summary.get('Хойшлогдсон захиалга', 0)}ш\n"
+        bot_response += f"• 🟧 **Буцаасан:** {summary.get('Буцаасан', 0)}ш\n"
+        bot_response += f"• 🟥 **Цуцалсан:** {summary.get('Цуцалсан', 0)}ш"
+
+    # Үр дүнг чатад хэвлэх
     with st.chat_message("assistant"):
         st.write(bot_response)
     st.session_state.messages.append({"role": "assistant", "content": bot_response})
