@@ -23,7 +23,7 @@ def load_and_clean_data():
     # А. Огноо цэвэрлэгээ
     zah_huu_df['он сар'] = zah_huu_df['он сар'].astype(str).str.strip()
     zah_huu_df['он сар'] = zah_huu_df['он сар'].replace(['nan', 'None', ''], np.nan)
-    zah_huu_df['он сар'] = zah_huu_df['он сар'].replace('1/3', '2026-01-03')
+    zah_huu_df['он са r'] = zah_huu_df['он са r'].replace('1/3', '2026-01-03')  # Шаардлагатай бол 'он сар' болгож засаарай
     
     zah_huu_df['он сар'] = zah_huu_df['он сар'].ffill()
     zah_huu_df['он сар'] = pd.to_datetime(zah_huu_df['он сар'], errors='coerce')
@@ -54,7 +54,7 @@ def load_and_clean_data():
     zah_huu_df.loc[zah_huu_df['Жолооч'].isna() | (zah_huu_df['Жолооч'] == ''), 'утас'] = 0
     
     # В. Ангилах логик
-    хүргэсэн_үгс = ['хүргэсэн', 'хүрэгсэн', 'хүргэгдсэн', 'хүргэсэн ', 'авсан', 'өчигдөр авсан', 'авчихсан'] # (товчлов)
+    хүргэсэн_үгс = ['хүргэсэн', 'хүрэгсэн', 'хүргэгдсэн', 'хүргэсэн ', 'авсан', 'өчигдөр авсан', 'авчихсан']
     буцаасан_үгс = ['буцаасан', 'буцаав', 'буцаана', 'үзээд аваагүй', 'голсон', 'голов'] 
     хойшлогдсон_үгс = ['хойшилсон', 'хойш', 'маргааш', 'мар', 'орой', 'амжаагүй']
     
@@ -153,14 +153,25 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
         filtered_df = filtered_df[filtered_df['барааны нэр'].str.contains('маск', case=False)]
         product_text = " (Бараа: Маск)"
 
-    # Г. ҮР ДҮНГ ТОГТООЖ ХАРИУЛТ БЭЛДЭХ
+    # Г. ҮР ДҮНГ ТОГТООЖ ХАРИУЛТ БЭЛДЭХ (Шинэчилсэн SUM логиктой хэсэг)
     total_orders = len(filtered_df)
     summary = filtered_df['мэдээ'].value_counts()
     
-    # Гарчиг бэлдэх
+    # Зөвхөн амжилттай 'Хүргэсэн' төлөвтэй захиалгуудын 'тоо ширхэг' баганыг нэмэх томьёо
+    delivered_only_df = filtered_df[filtered_df['мэдээ'] == 'Хүргэсэн']
+    
+    if 'тоо ширхэг' in filtered_df.columns:
+        total_items_delivered = delivered_only_df['тоо ширхэг'].sum()
+        items_text = f"• 📦 **Нийт хүргэсэн бараа:** {int(total_items_delivered)} ш\n"
+    else:
+        total_items_delivered = summary.get('Хүргэсэн', 0)
+        items_text = f"• 📦 **Нийт хүргэсэн захиалга (мөр):** {total_items_delivered} ш\n"
+    
+    # Хариултын текст бэлдэх
     driver_info = f" Жолооч: **{driver_found}**" if driver_found else ""
     bot_response = f"📅 **{date_text}**-ний{driver_info}{product_text} захиалгын мэдээлэл:\n\n"
-    bot_response += f"• **Нийт захиалга:** {total_orders}ш\n"
+    bot_response += f"• 📑 **Нийт бүртгэгдсэн захиалга (мөр):** {total_orders}ш\n"
+    bot_response += items_text  # Дээр бодсон нийлбэр (SUM) энд харагдана
     bot_response += f"--- \n"
     bot_response += f"• 🟩 **Хүргэсэн:** {summary.get('Хүргэсэн', 0)}ш\n"
     bot_response += f"• 🟨 **Хойшлогдсон захиалга:** {summary.get('Хойшлогдсон захиалга', 0)}ш\n"
