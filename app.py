@@ -4,7 +4,6 @@ import numpy as np
 import re
 import warnings
 from datetime import datetime, timedelta
-import openpyxl
 
 # 1. Тохиргоо болон Анхааруулга хаах
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
@@ -12,7 +11,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 st.set_page_config(page_title="CF - Тех Карт & Аналитик Chatbot", page_icon="💬", layout="centered")
 
 # 2. ДАТА УНШИХ БОЛОН ЦЭВЭРЛЭХ ФУНКЦ
-@st.cache_data
+@st.cache_data(ttl=3600)  # Кэшийг цаг тутам шинэчлэгдэхээр тохируулав
 def load_and_clean_data():
     file_path = "data/best_hurgelt.xlsx"
     all_sheets = pd.read_excel(file_path, sheet_name=None)
@@ -123,7 +122,7 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
         product_text = " (Бараа: Tengsu)"
     elif "маск" in query_lower:
         product_filter = "маск"
-        product_text = " (Бараа: Маск)"
+        product_text = " (Бараа: Mask)"
 
     # Г. ҮР ДҮН ТООЦООЛОХ БОЛОН ХАРИУЛТ БЭЛДЭХ ЛОГИК
     bot_response = ""
@@ -132,7 +131,6 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
     if driver_found and not has_date_keyword:
         bot_response = f"👤 Жолооч **{driver_found}**-ийн нэгдсэн статистик мэдээлэл{product_text}:\n\n"
         
-        # Хугацааны интервалууд тодорхойлох
         intervals = {
             "📌 Өнөөдөр": (today, today),
             "📅 Өнгөрсөн 7 хоног": (today - timedelta(days=today.weekday() + 7), today - timedelta(days=today.weekday() + 7) + timedelta(days=6)),
@@ -140,17 +138,15 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
         }
         
         for title, (start, end) in intervals.items():
-            # Хугацаа болон Жолоочоор шүүх
             df_slice = zah_huu_df[(zah_huu_df['огноо_өдөр'] >= start) & (zah_huu_df['огноо_өдөр'] <= end) & (zah_huu_df['Жолооч'] == driver_found)]
             
-            # Бараагаар нэмж шүүх
             if product_filter:
                 df_slice = df_slice[df_slice['барааны нэр'].str.contains(product_filter, case=False)]
                 
             total_orders = len(df_slice)
             summary = df_slice['мэдээ'].value_counts()
             
-            # Хүргэсэн барааны тоо ширхэг
+            # Аюулгүй байдлаар шүүх (Хуучин or операторыг бүрэн устгасан)
             delivered_df = df_slice[df_slice['мэдээ'] == 'Хүргэсэн']
             if 'тоо ширхэг' in df_slice.columns:
                 total_items = int(delivered_df['тоо ширхэг'].sum())
@@ -201,7 +197,7 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
         total_orders = len(filtered_df)
         summary = filtered_df['мэдээ'].value_counts()
         
-        # ✅ БҮРЭН ЗАСАРСАН МӨРҮҮД: Хуучин алдаатай or-той кодыг бүрэн сольсон
+        # ✅ БҮРЭН ЗАСАРСАН МӨР: Ямар ч хуучин 'or' болон 'ХRef хүргэсэн' байхгүй
         delivered_only_df = filtered_df[filtered_df['мэдээ'] == 'Хүргэсэн']
         
         if 'тоо ширхэг' in filtered_df.columns:
