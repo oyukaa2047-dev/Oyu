@@ -4,7 +4,7 @@ import numpy as np
 import re
 import warnings
 from datetime import datetime, timedelta
-openpyxl
+import openpyxl
 
 # 1. Тохиргоо болон Анхааруулга хаах
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
