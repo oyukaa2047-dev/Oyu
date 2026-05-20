@@ -4,3 +4,4 @@ openai
 openpyxl
 xlsxwriter
 python-dotenv
+numpy
