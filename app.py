@@ -198,10 +198,8 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
         # Бараагаар шүүх
         if product_filter:
             filtered_df = filtered_df[filtered_df['барааны нэр'].str.contains(product_filter, case=False)]
-
         total_orders = len(filtered_df)
-        summary = filtered_df['мэдээ'].value_counts()
-        
+        summary = filtered_df['мэдээ'].value_counts()  
         # Мэдээ баганын мөрүүдийг шууд тоолж хувьсагчид авна
         delivered = summary.get('Хүргэсэн', 0)
         postponed = summary.get('Хойшлогдсон захиалга', 0)
