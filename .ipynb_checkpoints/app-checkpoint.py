@@ -23,7 +23,7 @@ def load_and_clean_data():
     # А. Огноо цэвэрлэгээ
     zah_huu_df['он сар'] = zah_huu_df['он сар'].astype(str).str.strip()
     zah_huu_df['он сар'] = zah_huu_df['он сар'].replace(['nan', 'None', ''], np.nan)
-    zah_huu_df['он са r'] = zah_huu_df['он са r'].replace('1/3', '2026-01-03')  # Шаардлагатай бол 'он сар' болгож засаарай
+    zah_huu_df['он са r'] = zah_huu_df['он сар'].replace('1/3', '2026-01-03')  # Шаардлагатай бол 'он сар' болгож засаарай
     
     zah_huu_df['он сар'] = zah_huu_df['он сар'].ffill()
     zah_huu_df['он сар'] = pd.to_datetime(zah_huu_df['он сар'], errors='coerce')
