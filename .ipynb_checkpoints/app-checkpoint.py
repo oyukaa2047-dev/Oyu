@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 st.set_page_config(page_title="CF - Тех Карт & Аналитик Chatbot", page_icon="💬", layout="centered")
 
 # 2. ДАТА УНШИХ БОЛОН ЦЭВЭРЛЭХ ФУНКЦ
-@st.cache_data(ttl=3600)  # Кэшийг цаг тутам шинэчлэгдэхээр тохируулав
+@st.cache_data(ttl=60)
 def load_and_clean_data():
     file_path = "data/best_hurgelt.xlsx"
     all_sheets = pd.read_excel(file_path, sheet_name=None)
@@ -46,9 +46,9 @@ def load_and_clean_data():
     zah_huu_df['Жолооч'] = zah_huu_df['Жолооч'].apply(lambda x: 'Тодорхойгүй' if x.isdigit() else x)
     
     zah_huu_df['барааны нэр'] = zah_huu_df['барааны нэр'].fillna('').astype(str)
+    
     tengsu_нөхцөл = zah_huu_df['барааны нэр'].str.contains('Эр бэлдмэл Tengsu-1,', case=False, na=False)
     zah_huu_df.loc[tengsu_нөхцөл, 'утас'] = 99335584
-    
     zah_huu_df.loc[zah_huu_df['Жолооч'].isna() | (zah_huu_df['Жолооч'] == ''), 'утас'] = 0
     
     # В. Ангилах логик
@@ -127,7 +127,7 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
     # Г. ҮР ДҮН ТООЦООЛОХ БОЛОН ХАРИУЛТ БЭЛДЭХ ЛОГИК
     bot_response = ""
 
-    # Нөхцөл 1: Зөвхөн Жолоочийн нэр хэлсэн бөгөөд хугацаа заагаагүй бол (Автоматаар Өдөр, 7 хоног, Сарыг зэрэг харуулна)
+    # Нөхцөл 1: Зөвхөн Жолоочийн нэр хэлсэн бөгөөд хугацаа заагаагүй бол
     if driver_found and not has_date_keyword:
         bot_response = f"👤 Жолооч **{driver_found}**-ийн нэгдсэн статистик мэдээлэл{product_text}:\n\n"
         
@@ -146,20 +146,16 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
             total_orders = len(df_slice)
             summary = df_slice['мэдээ'].value_counts()
             
-            # Аюулгүй байдлаар шүүх (Хуучин or операторыг бүрэн устгасан)
-            delivered_df = df_slice[df_slice['мэдээ'] == 'Хүргэсэн']
-            if 'тоо ширхэг' in df_slice.columns:
-                total_items = int(delivered_df['тоо ширхэг'].sum())
-            else:
-                total_items = summary.get('Хүргэсэн', 0)
+            # ✅ ШИНЭЧЛЭВ: "тоо ширхэг" багана байхгүй тул шууд хүргэсэн мөрийн тоог авна
+            total_items = summary.get('Хүргэсэн', 0)
                 
             bot_response += f"### {title}\n"
             bot_response += f"• 📑 Нийт захиалга (мөр): **{total_orders}** ш\n"
-            bot_response += f"• 📦 Нийт хүргэсэн бараа: **{total_items}** ш\n"
+            bot_response += f"• 📦 Нийт хүргэсэн захиалга: **{total_items}** ш\n"
             bot_response += f"• 🟩 Хүргэсэн: {summary.get('Хүргэсэн', 0)} | 🟨 Хойшилсон: {summary.get('Хойшлогдсон захиалга', 0)} | 🟧 Буцаасан: {summary.get('Буцаасан', 0)} | 🟥 Цуцалсан: {summary.get('Цуцалсан', 0)}\n"
             bot_response += "---\n"
 
-    # Нөхцөл 2: Жирийн үед эсвэл Тодорхой хугацаа зааж асуусан бол (Хуучин логик)
+    # Нөхцөл 2: Тодорхой хугацаа зааж асуусан бол
     else:
         filtered_df = zah_huu_df.copy()
         date_text = "Бүх цаг үеийн"
@@ -197,19 +193,13 @@ if user_query := st.chat_input("Асуултаа энд бичнэ үү..."):
         total_orders = len(filtered_df)
         summary = filtered_df['мэдээ'].value_counts()
         
-        # ✅ БҮРЭН ЗАСАРСАН МӨР: Ямар ч хуучин 'or' болон 'ХRef хүргэсэн' байхгүй
-        delivered_only_df = filtered_df[filtered_df['мэдээ'] == 'Хүргэсэн']
-        
-        if 'тоо ширхэг' in filtered_df.columns:
-            total_items_delivered = delivered_only_df['тоо ширхэг'].sum()
-            items_text = f"• 📦 **Нийт хүргэсэн бараа:** {int(total_items_delivered)} ш\n"
-        else:
-            total_items_delivered = summary.get('Хүргэсэн', 0)
-            items_text = f"• 📦 **Нийт хүргэсэн захиалга (мөр):** {total_items_delivered} ш\n"
+        # ✅ ШИНЭЧЛЭВ: Илүү дутуу if/else шалгалтгүйгээр шууд тоолно
+        total_items_delivered = summary.get('Хүргэсэн', 0)
+        items_text = f"• 📦 **Нийт хүргэсэн захиалга:** {total_items_delivered} ш\n"
 
         driver_info = f" Жолооч: **{driver_found}**" if driver_found else ""
         bot_response = f"📅 **{date_text}**-ний{driver_info}{product_text} захиалгын мэдээлэл:\n\n"
-        bot_response += f"• 📑 **Нийт бүртгэгдсэн захиалга (мөр):** {total_orders}ш\n"
+        bot_response += f"• 📑 **Нийт бүртгэгдсэн захиалга:** {total_orders}ш\n"
         bot_response += items_text
         bot_response += f"--- \n"
         bot_response += f"• 🟩 **Хүргэсэн:** {summary.get('Хүргэсэн', 0)}ш\n"
