@@ -23,7 +23,7 @@ def load_and_clean_data():
     if 'он сар' in zah_huu_df.columns:
         zah_huu_df['он сар'] = zah_huu_df['он сар'].astype(str).str.strip()
     elif 'он са r' in zah_huu_df.columns:
-        zah_huu_df['он сар'] = zah_huu_df['он са r'].astype(str).str.strip()
+        zah_huu_df['он сар'] = zah_huu_df['он сар'].astype(str).str.strip()
         
     zah_huu_df['он сар'] = zah_huu_df['он сар'].replace(['nan', 'None', ''], np.nan)
     zah_huu_df['он сар'] = zah_huu_df['он сар'].replace('1/3', '2026-01-03')
